@@ -1,0 +1,63 @@
+﻿@page "/"
+
+<PageTitle>HateDetector</PageTitle>
+
+<h1>HateDetector</h1>
+<h3>Write something in english and I'll point the hostility level'</h3>
+<br/>
+<div class="input-container">
+    <input @bind="InputText" placeholder="Say Something">
+    <button @onclick="OnPredictClick">Go</button>
+</div>
+<div class="legend">
+    <h4>Correlação</h4>
+    <p>0,9 a 1 - Muito forte</p>
+    <p>0,7 a 0,9 - Forte</p>
+    <p>0,5 a 0,7 - Moderada</p>
+    <p>0,3 a 0,5 - Fraca</p>
+    <p>0 a 0,3 - Despresivel</p>
+</div>
+<style>
+    .legend {
+        margin-left: 60%;
+    }
+    .prediction-result {
+        margin-top: -20%;
+    }
+</style>
+
+@if (!string.IsNullOrEmpty(PredictionResult))
+{
+    <div class="prediction-result">
+        <p>hostility: @PredictionResult</p>
+    </div>
+}
+
+@code {
+    @using System.Text.Json
+    @using System.Text
+    private string InputText { get; set; }
+    private string PredictionResult { get; set; }
+
+    private async Task OnPredictClick()
+    {
+        var httpClient = new HttpClient();
+    var data = new { comment = InputText };
+    var json = JsonSerializer.Serialize(data);
+    var content = new StringContent(json, Encoding.UTF8, "application/json");
+    var response = await httpClient.PostAsync("http://127.0.0.1:5000/predict", content);
+    if (response.IsSuccessStatusCode)
+    {
+        var responseContent = await response.Content.ReadAsStringAsync();
+        var result = JsonSerializer.Deserialize<PredictionResult>(responseContent);
+        PredictionResult = result.prediction.ToString();
+    }
+        else
+        {
+            // Caso a requisição falhe, exibir o status code de erro
+            PredictionResult = $"Erro: {response.StatusCode}";
+        }
+    }
+}
+
+
